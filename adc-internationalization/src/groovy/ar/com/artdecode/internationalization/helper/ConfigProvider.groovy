@@ -11,12 +11,17 @@ class ConfigProvider {
 	static def config
 	def static  getConfig() {
 		if (!config) {
+			
+			//println  "new File(CONFIG_LOCATION).toURI().toURL()" + new File(CONFIG_LOCATION).toURI().toURL()
+			
 			config = new ConfigSlurper(Environment.getCurrent().getName()).parse(new File(CONFIG_LOCATION).toURI().toURL())
 		}
 		return config
 	}
 	
 	static def List<String> getLanguages() {
+		
+		println "getConfig().grails.i18n.languages " + getConfig().grails.i18n.languages
 		
 		getConfig().grails.i18n.languages
 	}

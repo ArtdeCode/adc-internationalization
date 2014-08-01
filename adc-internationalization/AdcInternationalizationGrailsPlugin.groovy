@@ -1,8 +1,8 @@
-import ar.com.artdecode.internatiomalization.helper.I18NHelper;
+import ar.com.artdecode.internationalization.helper.I18NHelper;
 
 class AdcInternationalizationGrailsPlugin {
     // the plugin version
-    def version = "1.0"
+    def version = "1.1"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.2 > *"
     // resources that are excluded from plugin packaging
