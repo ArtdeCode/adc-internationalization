@@ -11,10 +11,20 @@ class I18NHelper {
 	
 	
 	def static methodMissingDefinition(domainClass) {
-		
 	  
 	  def mc = domainClass.clazz.metaClass
-		
+
+	  def originalMapConstructor = mc.retrieveConstructor(Map)
+ 	  
+	  mc.constructor = { Map m ->
+	 	
+		m =  i18nMap(domainClass.clazz,m)
+		  
+	    def instance = originalMapConstructor.newInstance(m)
+	 
+	   	instance
+	  }
+	  		
 	  def oldMethodMissing = mc.methods.find { it.name == '$static_methodMissing' }
 	  
 	  def newMethodMissing
@@ -122,6 +132,30 @@ class I18NHelper {
 		clazz."findAll"(query,parameters);
 	}
 	
+	def static Map i18nMap(Class clazz, Map parameters) {
+		
+		def fieldNames = clazz.i18nFields
+		
+		fieldNames.each {
+			 
+			if (parameters && parameters.containsKey(it)) {
+				 def value = parameters.remove(it)
+				 parameters.put(i18n(it), value)
+			}
+		}
+		
+		parameters
+		
+	}
+	
+	def static createI18N(Class clazz, Map parameters) {
+
+		parameters = i18nMap(clazz, parameters);	
+		
+		clazz.newInstance(parameters)
+		
+	}
+	
 	def static findWhereI18N(Class clazz, Map queryMap, Map parameters=[:]) {
 		
 		def fieldNames = clazz.i18nFields
@@ -197,28 +231,27 @@ class I18NHelper {
 		
 		String propertyLanguage = fieldName + StringUtils.capitalize(language)
 		
-		bean.@"$propertyLanguage" = value
 		
 	}
 
 	def static getValue(Object bean, String fieldName) {
-	
+		
 		Locale locale = LocaleContextHolder.getLocale()
 		
 		String language = locale?.getLanguage()
 		
 		if (!Holders.config.grails.i18n.languages.contains(language)) {
-			return;
+			return bean."${fieldName}Default"
 		}
 		
 		String propertyLanguage = fieldName + StringUtils.capitalize(language)
 	
-		String value = bean.@"$propertyLanguage"
+		String value = bean."$propertyLanguage"
 		
 		if (!value) {
-			value = bean.@"${fieldName}Default"
+			value = bean."${fieldName}Default"
 		}
-			
+		
 		value 
 	
 	}

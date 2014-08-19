@@ -1,5 +1,9 @@
 package ar.com.artdecode.internationalization
 
+import grails.util.Holders;
+
+import org.springframework.context.i18n.LocaleContextHolder;
+
 import ar.com.artdecode.internationalization.helper.I18NHelper;
 
 class I18NTagLib {
@@ -19,7 +23,7 @@ class I18NTagLib {
 		}	
 					
 		I18NHelper.withLocale(locale) {
-			body()
+			out << body(locale:locale)
 		}
 		
 	}
@@ -34,14 +38,13 @@ class I18NTagLib {
 		
 		String language = locale?.getLanguage()
 		
-		
 		Holders.config.grails.i18n.languages.each {
-		
-			if (filterCurrentLocale && language == it) {
+			
+			if (attrs.filterCurrentLocale && language == it) {
 				return;
 			}
 			
-			body(locale:new Locale(it))	
+			out << 	body(language:it) 
 		}
 		
 	}

@@ -54,14 +54,14 @@ public class I18NTransformer implements  Opcodes {
 			
 			returnClassNode = ClassHelper.VOID_TYPE;
 			
-			System.out.println("set method " + methodName);
+			//System.out.println("set method " + methodName);
 		}
 		
 		MethodNode mn = classNode.getMethod(methodName, parameters);
 		
 		if(mn == null){
 			
-			System.out.println("create method");
+			//System.out.println("create method");
 			
 			classNode.addMethod(methodName, Modifier.PUBLIC, returnClassNode, parameters, null, new BlockStatement());
 			

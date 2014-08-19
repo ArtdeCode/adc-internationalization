@@ -5,6 +5,7 @@ import groovy.lang.Closure;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -18,8 +19,15 @@ import org.codehaus.groovy.ast.FieldNode;
 import org.codehaus.groovy.ast.MethodNode;
 import org.codehaus.groovy.ast.Parameter;
 import org.codehaus.groovy.ast.builder.AstBuilder;
+import org.codehaus.groovy.ast.expr.ArgumentListExpression;
+import org.codehaus.groovy.ast.expr.ConstantExpression;
+import org.codehaus.groovy.ast.expr.Expression;
 import org.codehaus.groovy.ast.expr.MapExpression;
+import org.codehaus.groovy.ast.expr.StaticMethodCallExpression;
+import org.codehaus.groovy.ast.expr.VariableExpression;
 import org.codehaus.groovy.ast.stmt.BlockStatement;
+import org.codehaus.groovy.ast.stmt.ExpressionStatement;
+import org.codehaus.groovy.ast.stmt.ReturnStatement;
 import org.codehaus.groovy.control.CompilePhase;
 import org.codehaus.groovy.control.SourceUnit;
 import org.codehaus.groovy.grails.commons.GrailsClassUtils;
@@ -28,6 +36,7 @@ import org.codehaus.groovy.transform.GroovyASTTransformation;
 import org.objectweb.asm.Opcodes;
 
 import ar.com.artdecode.internationalization.helper.ConfigProvider;
+import ar.com.artdecode.internationalization.helper.I18NHelper;
 
 @GroovyASTTransformation(phase = CompilePhase.CANONICALIZATION)
 public class I18NASTTransformation implements ASTTransformation, Opcodes {
@@ -47,11 +56,26 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 				
 				I18NTransformer transformer =  new I18NTransformer(fieldNode.getOwner(), fieldNode);
 				
+				Class<?> helperClass = I18NHelper.class;
+				
+				sourceUnit.getAST().addImport(helperClass.getSimpleName(), ClassHelper.make(helperClass));
+				
+				//sourceUnit.getAST().addStaticStarImport(helperClass.getSimpleName(), ClassHelper.make(helperClass));
+				
 				transformer.addProperty(getDefaultFieldName(fieldNode.getName()), fieldNode.getType().getTypeClass());
 				
 				transformer.addNullableConstraint(getDefaultFieldName(fieldNode.getName()));
 				
+				log("Process field " + fieldNode.getName());
+				
 				List<String> languages = ConfigProvider.getLanguages();
+				
+				if (languages == null) {
+					
+					languages = Arrays.asList("es", "en", "fr","de","pt");
+				
+					log("Process field languages is null ");
+				}
 				
 				for (String lanaguage : languages) {
 
@@ -86,23 +110,21 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 					parameters[0] = new Parameter(new ClassNode(Locale.class), "locale");
 					
 					parameters[1] = new Parameter(new ClassNode(Closure.class), "caller");
-
-					StringBuilder stringBuilder = new StringBuilder();
 					
-					stringBuilder.append("ar.com.artdecode.internationalization.helper.I18NHelper.withLocale(locale, caller);\n");
+					BlockStatement blockStatement = new BlockStatement();
 					
-					stringBuilder.append("return;");
+		            Expression staticExpression = new StaticMethodCallExpression(new ClassNode(I18NHelper.class),"withLocale" ,new ArgumentListExpression(parameters));
+		            
+					blockStatement.addStatement(new ExpressionStatement(staticExpression));
 					
-					String configStr = stringBuilder.toString();
-					
-					BlockStatement statement = (BlockStatement) new AstBuilder().buildFromString(configStr).get(0);
-					
-					MethodNode methodNode = new MethodNode("withLocale", ACC_PUBLIC | ACC_STATIC, ClassHelper.VOID_TYPE, parameters, null, statement);
+					MethodNode methodNode = new MethodNode("withLocale", ACC_PUBLIC | ACC_STATIC, ClassHelper.VOID_TYPE, parameters, null, blockStatement);
 					
 					transformer.classNode.addMethod(methodNode);
 				}
 
 				if (transformer.classNode.getMethods("findI18NAll").isEmpty()) {
+					
+					String methodName = "findI18NAll";
 					
 					Parameter [] parameters = new Parameter[2];
 					
@@ -112,15 +134,7 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 
 					parameters[1].setInitialExpression(new MapExpression());
 					
-					StringBuilder stringBuilder = new StringBuilder();
-					
-					stringBuilder.append("return ar.com.artdecode.internationalization.helper.I18NHelper.findI18NAll(" + transformer.classNode.getName() +".class, query, parameters);");
-					
-					String configStr = stringBuilder.toString();
-					
-					BlockStatement statement = (BlockStatement) new AstBuilder().buildFromString(configStr).get(0);
-					
-					MethodNode methodNode = new MethodNode("findI18NAll", ACC_PUBLIC | ACC_STATIC, ClassHelper.OBJECT_TYPE, parameters, null, statement);
+					MethodNode methodNode = createDelegateMethod("findI18NAll", parameters);
 					
 					transformer.classNode.addMethod(methodNode);
 				}
@@ -135,15 +149,7 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 
 					parameters[1].setInitialExpression(new MapExpression());
 					
-					StringBuilder stringBuilder = new StringBuilder();
-					
-					stringBuilder.append("return ar.com.artdecode.internationalization.helper.I18NHelper.findI18N(" + transformer.classNode.getName() +".class, query, parameters);");
-					
-					String configStr = stringBuilder.toString();
-					
-					BlockStatement statement = (BlockStatement) new AstBuilder().buildFromString(configStr).get(0);
-					
-					MethodNode methodNode = new MethodNode("findI18N", ACC_PUBLIC | ACC_STATIC, ClassHelper.OBJECT_TYPE, parameters, null, statement);
+					MethodNode methodNode = createDelegateMethod("findI18N", parameters);
 					
 					transformer.classNode.addMethod(methodNode);
 				}
@@ -157,16 +163,8 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 
 					parameters[1].setInitialExpression(new MapExpression());
 					
-					StringBuilder stringBuilder = new StringBuilder();
-					
-					stringBuilder.append("return ar.com.artdecode.internationalization.helper.I18NHelper.findWhereI18N(" + transformer.classNode.getName() +".class, queryMap, parameters);");
-					
-					String configStr = stringBuilder.toString();
-					
-					BlockStatement statement = (BlockStatement) new AstBuilder().buildFromString(configStr).get(0);
-					
-					MethodNode methodNode = new MethodNode("findWhereI18N", ACC_PUBLIC | ACC_STATIC, ClassHelper.OBJECT_TYPE, parameters, null, statement);
-					
+					MethodNode methodNode = createDelegateMethod("findWhereI18N", parameters);
+						
 					transformer.classNode.addMethod(methodNode);
 				}
 				if (transformer.classNode.getMethods("findAllWhereI18N").isEmpty()) {
@@ -179,18 +177,33 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 
 					parameters[1].setInitialExpression(new MapExpression());
 					
-					StringBuilder stringBuilder = new StringBuilder();
+					MethodNode methodNode = createDelegateMethod("findAllWhereI18N", parameters);
 					
-					stringBuilder.append("return ar.com.artdecode.internationalization.helper.I18NHelper.findAllWhereI18N(" + transformer.classNode.getName() +".class, queryMap, parameters);");
+					transformer.classNode.addMethod(methodNode);
+				}
+				
+				if (transformer.classNode.getMethods("i18nMap").isEmpty()) {
 					
-					String configStr = stringBuilder.toString();
+					Parameter [] parameters = new Parameter[1];
 					
-					BlockStatement statement = (BlockStatement) new AstBuilder().buildFromString(configStr).get(0);
+					parameters[0] = new Parameter(new ClassNode(Map.class), "parameters");
 					
-					MethodNode methodNode = new MethodNode("findAllWhereI18N", ACC_PUBLIC | ACC_STATIC, ClassHelper.OBJECT_TYPE, parameters, null, statement);
+					MethodNode methodNode = createDelegateMethod("i18nMap", parameters);
+					
+					transformer.classNode.addMethod(methodNode);
+				}		
+				
+				if (transformer.classNode.getMethods("createI18N").isEmpty()) {
+					
+					Parameter [] parameters = new Parameter[1];
+					
+					parameters[0] = new Parameter(new ClassNode(Map.class), "parameters");
+					
+					MethodNode methodNode = createDelegateMethod("createI18N", parameters);
 					
 					transformer.classNode.addMethod(methodNode);
 				}				
+		
 			} 
 			catch (Exception exception) {
 				
@@ -199,11 +212,38 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 				exception.printStackTrace(new PrintWriter(stringWriter));
 				
 				log(stringWriter.toString());
+				
+				throw new RuntimeException(exception.getMessage(), exception);
+				
 			}
 
 			break;
 		}
 
+	}
+
+
+
+	private MethodNode createDelegateMethod(String methodName,
+			Parameter[] parameters) {
+		BlockStatement blockStatement = new BlockStatement();
+
+		List<Expression> expressions = new ArrayList<Expression>();
+		
+		expressions.add(new VariableExpression("this"));
+
+		for (Parameter parameter : parameters) {
+
+			expressions.add(new VariableExpression(parameter.getName()));
+			
+		}
+		
+		Expression staticExpression = new StaticMethodCallExpression(new ClassNode(I18NHelper.class),methodName ,new ArgumentListExpression(expressions));
+		
+		blockStatement.addStatement(new ReturnStatement(staticExpression));
+		
+		MethodNode methodNode = new MethodNode(methodName, ACC_PUBLIC | ACC_STATIC, ClassHelper.OBJECT_TYPE, parameters, null, blockStatement);
+		return methodNode;
 	}
 	
 
@@ -227,15 +267,20 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 
 	private BlockStatement createGetBlock(String property) {
 		
-		StringBuilder stringBuilder = new StringBuilder();
 
-		stringBuilder.append("return ar.com.artdecode.internationalization.helper.I18NHelper.getValue(this, \"").append(property).append("\");");
+		BlockStatement blockStatement = new BlockStatement();
 		
-		String configStr = stringBuilder.toString();
+		List<Expression> expressions = new ArrayList<Expression>();
 		
-		BlockStatement newConfig = (BlockStatement) new AstBuilder().buildFromString(configStr).get(0);
-
-		return newConfig;
+		expressions.add(new VariableExpression("this"));
+		
+		expressions.add(new ConstantExpression(property));
+		
+        Expression staticExpression = new StaticMethodCallExpression(new ClassNode(I18NHelper.class),"getValue" ,new ArgumentListExpression(expressions));
+        
+		blockStatement.addStatement(new ReturnStatement(staticExpression));
+		
+		return blockStatement;
 	}
 
 	private void changeSet(MethodNode mn, String property) {
@@ -251,24 +296,40 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 
 	private BlockStatement createSetBlock(String property, String parameter) {
 		
-		StringBuilder stringBuilder = new StringBuilder();
+		BlockStatement blockStatement = new BlockStatement();
 		
-		stringBuilder.append("ar.com.artdecode.internationalization.helper.I18NHelper.setValue(this, \"").append(property).append("\", ").append(parameter).append(");");
+		List<Expression> expressions = new ArrayList<Expression>();
 		
-		stringBuilder.append(";\nreturn;");
+		expressions.add(new VariableExpression("this"));
+		
+		expressions.add(new ConstantExpression(property));
+		
+		expressions.add(new VariableExpression(parameter));
+		
+        Expression staticExpression = new StaticMethodCallExpression(new ClassNode(I18NHelper.class),"setValue" ,new ArgumentListExpression(expressions));
+        
+		blockStatement.addStatement(new ExpressionStatement(staticExpression));
+		
+		return blockStatement;
+		
+		/*StringBuilder stringBuilder = new StringBuilder();
+		
+		stringBuilder.append("I18NHelper.setValue(this, \"").append(property).append("\", ").append(parameter).append(");");
+		
+		stringBuilder.append("\nreturn;");
 		
 		String configStr = stringBuilder.toString();
 		
-		System.out.println(configStr);
+		//System.out.println(configStr);
 		
 		BlockStatement newConfig = (BlockStatement) new AstBuilder().buildFromString(configStr).get(0);
 
-		return newConfig;
+		return newConfig;*/
 	}	
 	
 
 
-	protected void log(String message) {
+	protected  void log(String message) {
 		System.out.println("[I18n] " + message);
 		
 		

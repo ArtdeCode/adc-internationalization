@@ -12,7 +12,7 @@ class ConfigProvider {
 	def static  getConfig() {
 		if (!config) {
 			
-			//println  "new File(CONFIG_LOCATION).toURI().toURL()" + new File(CONFIG_LOCATION).toURI().toURL()
+			println  "new File(CONFIG_LOCATION).toURI().toURL()" + new File(CONFIG_LOCATION).toURI().toURL()
 			
 			config = new ConfigSlurper(Environment.getCurrent().getName()).parse(new File(CONFIG_LOCATION).toURI().toURL())
 		}
@@ -23,7 +23,7 @@ class ConfigProvider {
 		
 		println "getConfig().grails.i18n.languages " + getConfig().grails.i18n.languages
 		
-		getConfig().grails.i18n.languages
+		def result = getConfig().grails.i18n.languages
 	}
 
 }

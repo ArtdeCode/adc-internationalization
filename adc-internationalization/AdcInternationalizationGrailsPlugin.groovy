@@ -1,8 +1,10 @@
-import ar.com.artdecode.internationalization.helper.I18NHelper;
+import org.codehaus.groovy.grails.commons.GrailsClassUtils
+
+import ar.com.artdecode.internationalization.helper.I18NHelper
 
 class AdcInternationalizationGrailsPlugin {
     // the plugin version
-    def version = "1.1"
+    def version = "1.8"
     // the version or versions of Grails the plugin is designed for
     def grailsVersion = "2.2 > *"
     // resources that are excluded from plugin packaging
@@ -38,6 +40,8 @@ Brief summary/description of the plugin.
     // Online location of the plugin's browseable source code.
 //    def scm = [ url: "http://svn.codehaus.org/grails-plugins/" ]
 
+	def loadAfter = ['controllers']
+	
     def doWithWebDescriptor = { xml ->
     }
 
@@ -46,7 +50,9 @@ Brief summary/description of the plugin.
 
     def doWithDynamicMethods = { ctx ->
 			application.domainClasses.each { domainClass ->
-				I18NHelper.methodMissingDefinition(domainClass)
+				if (GrailsClassUtils.getStaticFieldValue(domainClass.clazz, "i18nFields")) {
+					I18NHelper.methodMissingDefinition(domainClass)
+				}
 			}
 	}
 
@@ -55,7 +61,9 @@ Brief summary/description of the plugin.
 
     def onChange = { event ->
 		application.domainClasses.each { domainClass ->
-			I18NHelper.methodMissingDefinition(domainClass)
+			if (GrailsClassUtils.getStaticFieldValue(domainClass.clazz, "i18nFields")) {
+				I18NHelper.methodMissingDefinition(domainClass)
+			}
 		}
     }
 

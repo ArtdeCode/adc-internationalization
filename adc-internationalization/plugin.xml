@@ -1,4 +1,4 @@
-<plugin name='adc-internationalization' version='1.1' grailsVersion='2.2 &gt; *'>
+<plugin name='adc-internationalization' version='1.8' grailsVersion='2.2 &gt; *'>
   <author>Emilio Alberdi</author>
   <authorEmail>emilio.alberdi at artdecode dot com dot ar</authorEmail>
   <title>ArtdeCode Internationalization Plugin</title>
@@ -6,7 +6,9 @@
 </description>
   <documentation>http://grails.org/plugin/adc-internationalization</documentation>
   <type>AdcInternationalizationGrailsPlugin</type>
-  <resources />
+  <resources>
+    <resource>ar.com.artdecode.internationalization.I18NTagLib</resource>
+  </resources>
   <repositories>
     <repository name='grailsCentral' url='http://grails.org/plugins' />
     <repository name='mavenCentral' url='http://repo1.maven.org/maven2/' />
