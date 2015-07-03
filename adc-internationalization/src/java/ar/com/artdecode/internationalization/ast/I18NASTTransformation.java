@@ -72,7 +72,7 @@ public class I18NASTTransformation implements ASTTransformation, Opcodes {
 				
 				if (languages == null) {
 					
-					languages = Arrays.asList("es", "en", "fr","de","pt");
+					languages = Arrays.asList("es", "en", "fr","de","pt", "it");
 				
 					log("Process field languages is null ");
 				}

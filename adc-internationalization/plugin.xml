@@ -1,4 +1,4 @@
-<plugin name='adc-internationalization' version='1.8' grailsVersion='2.2 &gt; *'>
+<plugin name='adc-internationalization' version='1.9.2' grailsVersion='2.2 &gt; *'>
   <author>Emilio Alberdi</author>
   <authorEmail>emilio.alberdi at artdecode dot com dot ar</authorEmail>
   <title>ArtdeCode Internationalization Plugin</title>

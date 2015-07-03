@@ -21,9 +21,33 @@ class I18NHelper {
 		m =  i18nMap(domainClass.clazz,m)
 		  
 	    def instance = originalMapConstructor.newInstance(m)
+		
+		def fieldNames = domainClass.clazz.i18nFields
+		
+		fieldNames.each {
+			
+			if (!instance."${it}Default") {
+				instance."${it}Default" = m[i18n(it)]
+			}
+			
+		}
 	 
 	   	instance
 	  }
+	  
+	  def oldSetProperties = mc.methods.find { it.name == 'setProperties' }
+	
+	  mc.setProperties = { Object  bindingSource ->
+		
+		  if (bindingSource instanceof Map) {
+			 bindingSource =  i18nMap(domainClass.clazz,bindingSource)
+			 	  
+		  }
+		   
+		  oldSetProperties.doMethodInvoke(delegate, bindingSource)
+		
+	   }
+	  
 	  		
 	  def oldMethodMissing = mc.methods.find { it.name == '$static_methodMissing' }
 	  
@@ -231,7 +255,11 @@ class I18NHelper {
 		
 		String propertyLanguage = fieldName + StringUtils.capitalize(language)
 		
+		bean."$propertyLanguage" = value
 		
+		if (!bean."${fieldName}Default") {
+			bean."${fieldName}Default" = value
+		}
 	}
 
 	def static getValue(Object bean, String fieldName) {
